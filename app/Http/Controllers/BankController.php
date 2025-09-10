@@ -29,7 +29,7 @@ class BankController extends Controller
         $nonce = Str::random(20);
         $timestamp = now()->format('YmdHis');
         $signature = hash_hmac('sha256', "clientID=" . $client_config['client_id'] . "&requestID=" . $request_id . "&nonce=" . $nonce . "&timestamp=" . $timestamp . "&aggregatorKeyAlias=" . $aggregator_key_alias, $client_config['x-api-key']);
-        $request_header = [
+        $request_params = [
             'clientID' => $client_config['client_id'],
             'requestID' => $request_id,
             'nonce' => $nonce,
@@ -37,7 +37,7 @@ class BankController extends Controller
             'aggregatorKeyAlias' => $aggregator_key_alias,
             'signature' => $signature,
         ];
-        $response = Http::withHeaders($request_header)->get(config('abs.' . env('APP_ENV') . '.banks.api_url'));
+        $response = Http::get(config('abs.' . env('APP_ENV') . '.banks.api_url'), $request_params);
         $data = $response->json();
         return response()->json([
             'message' => 'Bank list',
