@@ -27,7 +27,7 @@ class BankController extends Controller
         $aggregator_key_alias = "ABS_eGIRO";
         $request_id = Str::uuid()->toString();
         $nonce = Str::random(20);
-        $timestamp = now()->format('YmdHis');
+        $timestamp = now()->format('Uv');
         $signature = hash_hmac('sha256', "clientID=" . $client_config['client_id'] . "&requestID=" . $request_id . "&nonce=" . $nonce . "&timestamp=" . $timestamp . "&aggregatorKeyAlias=" . $aggregator_key_alias, $client_config['x-api-key']);
         $request_params = [
             'clientID' => $client_config['client_id'],
