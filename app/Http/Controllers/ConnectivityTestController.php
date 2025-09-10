@@ -40,11 +40,12 @@ class ConnectivityTestController extends Controller
         $request_body = [
             'message' => 'Connectivity Test',
         ];
-        $response = Http::withOptions([
+        $http = Http::withOptions([
             'cert' => storage_path('app/certs/uobuat_sivren_org.crt'),
             'ssl_key' => storage_path('app/certs/uobuat_sivren_org.pem'),
             'verify' => storage_path('app/certs/root-ca.crt'),
-        ])->withHeaders($header)->post($url, $request_body);
+        ])->withHeaders($header);
+        $response = $http->post($url, $request_body);
         if ($response->failed()) {
             return response()->json([
                 'request' => [
