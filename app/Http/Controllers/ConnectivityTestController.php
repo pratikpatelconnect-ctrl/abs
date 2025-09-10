@@ -34,9 +34,10 @@ class ConnectivityTestController extends Controller
             'clientID' => $clientConfig['client_id'],
             'requestID' => $request_id,
             'x-api-key' => $clientConfig['x-api-key'],
+            'aggregatorKeyAlias' => 'ABS_eGIRO',
         ];
         $request_body = [
-            'message' => 'connectivityTest',
+            'message' => 'Connectivity Test',
         ];
         $response = Http::withOptions([
             'cert' => storage_path('app/certs/uobuat_sivren_org.crt'),
