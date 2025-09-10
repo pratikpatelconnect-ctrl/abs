@@ -30,6 +30,7 @@ class ConnectivityTestController extends Controller
         }
         $clientConfig = $clientConfig[env('APP_ENV')];
         $request_id = (string) Str::uuid();
+        $url = config('abs.' . env('APP_ENV') . '.connectivityTest.api_url');
         $header = [
             'clientID' => $clientConfig['client_id'],
             'requestID' => $request_id,
@@ -43,7 +44,7 @@ class ConnectivityTestController extends Controller
             'cert' => storage_path('app/certs/uobuat_sivren_org.crt'),
             'ssl_key' => storage_path('app/certs/uobuat_sivren_org.pem'),
             'verify' => storage_path('app/certs/root-ca.crt'),
-        ])->withHeaders($header)->post(config('abs.' . env('APP_ENV') . '.connectivityTest.api_url'), $request_body);
+        ])->withHeaders($header)->post($url, $request_body);
         if ($response->failed()) {
             return response()->json([
                 'message' => 'Upstream request failed',
