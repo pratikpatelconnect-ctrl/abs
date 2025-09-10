@@ -47,6 +47,11 @@ class ConnectivityTestController extends Controller
         ])->withHeaders($header)->post($url, $request_body);
         if ($response->failed()) {
             return response()->json([
+                'request' => [
+                    'url' => $url,
+                    'header' => $header,
+                    'request_body' => $request_body,
+                ],
                 'message' => 'Upstream request failed',
                 'error' => $response->body(),
             ], $response->status() ?: 502);
