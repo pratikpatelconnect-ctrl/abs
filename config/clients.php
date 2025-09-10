@@ -8,8 +8,8 @@ return [
             'pgp' => [
                 'passphrase' => 'pgpss2025',
                 'fingerprint' => 'C17872836FDA628389B626533E949729690588A7',
-                'public_key' => storage_path('app/public/pgp/public.key'),
-                'private_key' => storage_path('app/public/pgp/private.key'),
+                'public_key' => storage_path('app/pgp/public.asc'),
+                'private_key' => storage_path('app/pgp/private.asc'),
             ]
         ],
         'production' => [
@@ -18,8 +18,8 @@ return [
             'pgp' => [
                 'passphrase' => '',
                 'fingerprint' => '',
-                'public_key' => storage_path('app/public/pgp/public.key'),
-                'private_key' => storage_path('app/public/pgp/private.key'),
+                'public_key' => storage_path('app/pgp/public.asc'),
+                'private_key' => storage_path('app/pgp/private.asc'),
             ]
         ],
     ]
