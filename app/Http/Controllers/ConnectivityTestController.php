@@ -29,7 +29,7 @@ class ConnectivityTestController extends Controller
             ], 422);
         }
         $clientConfig = $clientConfig[env('APP_ENV')];
-        $request_id = (string) Str::uuid();
+        $request_id = Str::uuid()->toString();
         $url = config('abs.' . env('APP_ENV') . '.connectivityTest.api_url');
         $header = [
             'clientID' => $clientConfig['client_id'],

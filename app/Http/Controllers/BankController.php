@@ -38,7 +38,7 @@ class BankController extends Controller
 
         // 3) Build request fields
         $aggregatorKeyAlias = 'ABS_eGIRO';
-        $requestId = (string) Str::uuid();
+        $requestId = Str::uuid()->toString();
         $nonce = Str::random(20);
         // epoch millis (e.g., "1725950062123"); Carbon ensures portability
         $timestamp = CarbonImmutable::now()->format('Uv');
