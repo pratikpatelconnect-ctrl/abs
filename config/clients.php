@@ -29,8 +29,8 @@ return [
     ],
     'galaxycredit' => [
         'uat' => [
-            'client_id' => 'BOSOO1887G01SOO',
-            'x-api-key' => '1135a09c-b0db-4c95-93e7-b8eb8f3e63e2',
+            'client_id' => 'BOGAL0194M01GAL',
+            'x-api-key' => '9523ef31-107d-4242-9139-6360337bd8d2',
             'pgp' => [
                 'issuer_id' => 'uobuat@sivren.com',
                 'passphrase' => 'uatuob2025',
