@@ -34,8 +34,8 @@ return [
             'pgp' => [
                 'issuer_id' => 'uobuat@sivren.com',
                 'passphrase' => 'uatuob2025',
-                'fingerprint' => 'C17872836FDA628389B626533E949729690588A7',
-                'issuer_key_id' => '3E949729690588A7',
+                'fingerprint' => '40044FCBD111BD3ADEBA4447BF7AC39F6DC6A2A2',
+                'issuer_key_id' => 'BF7AC39F6DC6A2A2',
                 'public_key' => storage_path('app/pgp/public.asc'),
                 'private_key' => storage_path('app/pgp/private.asc'),
             ]
