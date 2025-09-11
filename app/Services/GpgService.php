@@ -20,37 +20,61 @@ class GpgService
     public function sign(string $message, string $privateKeyPath, string $passphrase, string $keyFingerprint = null): string
     {
         try {
-            // Create Crypt_GPG instance
-            $gpg = new Crypt_GPG();
-            
-            // Set armor mode for ASCII output
-            $gpg->setArmor(true);
-            
-            // Import the private key
-            if (!is_readable($privateKeyPath)) {
-                throw new \RuntimeException('Private key not readable at ' . $privateKeyPath);
+            // Create temporary isolated keyring directory
+            $tempHome = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'gpg-' . bin2hex(random_bytes(6));
+            if (!mkdir($tempHome, 0700, true) && !is_dir($tempHome)) {
+                throw new \RuntimeException('Failed to create temp GNUPGHOME');
             }
             
-            $armoredKey = file_get_contents($privateKeyPath);
-            $importResult = $gpg->importKey($armoredKey);
-            
-            if (empty($importResult['fingerprint'])) {
-                throw new \RuntimeException('Failed to import private key');
+            // Ensure the directory is writable
+            if (!is_writable($tempHome)) {
+                throw new \RuntimeException('Temp GNUPGHOME directory is not writable');
             }
-            
-            $keyFingerprint = $keyFingerprint ?: $importResult['fingerprint'];
-            
-            // Add the signing key
-            $gpg->addSignKey($keyFingerprint, $passphrase);
-            
-            // Sign the message with detached signature
-            $signature = $gpg->sign($message, Crypt_GPG::SIGN_MODE_DETACH);
-            
-            if (!$signature || stripos($signature, 'BEGIN PGP SIGNATURE') === false) {
-                throw new \RuntimeException('Signing returned invalid signature');
+
+            try {
+                // Create Crypt_GPG instance with temporary keyring
+                $gpg = new Crypt_GPG([
+                    'homedir' => $tempHome,
+                    'armor' => true  // Enable ASCII armor output
+                ]);
+                
+                // Import the private key
+                if (!is_readable($privateKeyPath)) {
+                    throw new \RuntimeException('Private key not readable at ' . $privateKeyPath);
+                }
+                
+                $armoredKey = file_get_contents($privateKeyPath);
+                
+                // Import the key using the public method
+                $importResult = $gpg->importKey($armoredKey);
+                
+                if (empty($importResult['fingerprint'])) {
+                    throw new \RuntimeException('Failed to import private key');
+                }
+                
+                $keyFingerprint = $keyFingerprint ?: $importResult['fingerprint'];
+                
+                // Add the signing key
+                $gpg->addSignKey($keyFingerprint, $passphrase);
+                
+                // Sign the message with detached signature
+                $signature = $gpg->sign($message, Crypt_GPG::SIGN_MODE_DETACHED);
+                
+                if (!$signature || stripos($signature, 'BEGIN PGP SIGNATURE') === false) {
+                    throw new \RuntimeException('Signing returned invalid signature');
+                }
+                
+                return $signature;
+                
+            } finally {
+                // Cleanup temporary keyring
+                try {
+                    array_map('unlink', glob($tempHome . DIRECTORY_SEPARATOR . '*') ?: []);
+                    @rmdir($tempHome);
+                } catch (\Throwable $e) {
+                    // Ignore cleanup errors
+                }
             }
-            
-            return $signature;
             
         } catch (\Exception $e) {
             Log::error('Crypt_GPG signing failed', [
