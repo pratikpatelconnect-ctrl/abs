@@ -37,13 +37,38 @@ class BankController extends Controller
         }
         $clientConfig = $clientConfig[env('APP_ENV')];
 
-        // 3) Build request fields
-        $signKeyAlias = 'KEY1';
-        $requestId = Str::uuid()->toString();
-        $nonce = Str::random(20);
+        // 3) Build request fields according to API documentation
+        $signKeyAlias = 'KEY1'; // Optional parameter as per API docs
+        $requestId = Str::uuid()->toString(); // UUID, length = 36
+        $nonce = Str::random(20); // 20 digits random number
         // epoch millis - use a reasonable timestamp for testing
         // Note: Using a 2024 timestamp to avoid future timestamp issues with system clock
-        $timestamp = (string)(strtotime('2024-01-01 00:00:00') * 1000);
+        $timestamp = (string)(strtotime('2024-01-01 00:00:00') * 1000); // 13 digits
+        
+        // Validate generated parameters according to API specs
+        if (strlen($clientConfig['client_id']) !== 15) {
+            return response()->json([
+                'message' => 'Invalid client ID length. Must be exactly 15 characters.',
+            ], 422);
+        }
+        
+        if (strlen($requestId) !== 36) {
+            return response()->json([
+                'message' => 'Invalid request ID length. Must be exactly 36 characters (UUID).',
+            ], 422);
+        }
+        
+        if (strlen($nonce) !== 20) {
+            return response()->json([
+                'message' => 'Invalid nonce length. Must be exactly 20 characters.',
+            ], 422);
+        }
+        
+        if (strlen($timestamp) !== 13) {
+            return response()->json([
+                'message' => 'Invalid timestamp length. Must be exactly 13 characters.',
+            ], 422);
+        }
 
         // Build signature parameters in the correct order
         $signatureParams = 'clientID=' . $clientConfig['client_id']
@@ -52,7 +77,7 @@ class BankController extends Controller
             . '&timestamp=' . $timestamp
             . '&signKeyAlias=' . $signKeyAlias;
 
-        // 4) Generate PGP signature (ASCII-armored, detached)
+        // 4) Generate SHA256 signature as per API documentation
         try {
             $gpgService = new GpgService();
             $privateKeyPath = config('clients.' . $clientSlug . '.' . env('APP_ENV') . '.pgp.private_key');
@@ -69,7 +94,8 @@ class BankController extends Controller
                 'timestampDate' => date('Y-m-d H:i:s', $timestamp / 1000)
             ]);
             
-            $signature = $gpgService->sign($signatureParams, $privateKeyPath, $passphrase, $keyFingerprint);
+            // Use SHA256 signing as specified in API documentation
+            $signature = $gpgService->signWithSHA256($signatureParams, $privateKeyPath, $passphrase, $keyFingerprint);
             
             // Log the generated signature for debugging
             Log::info('Generated signature', [
@@ -79,7 +105,7 @@ class BankController extends Controller
             ]);
             
         } catch (\Throwable $e) {
-            Log::error('PGP signing failed', ['error' => $e->getMessage()]);
+            Log::error('Signature generation failed', ['error' => $e->getMessage()]);
             return response()->json([
                 'message' => 'Signature generation failed',
             ], 500);
