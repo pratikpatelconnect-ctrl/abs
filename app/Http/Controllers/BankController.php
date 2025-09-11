@@ -38,17 +38,18 @@ class BankController extends Controller
         $clientConfig = $clientConfig[env('APP_ENV')];
 
         // 3) Build request fields
-        $aggregatorKeyAlias = 'ABS_eGIRO';
+        $signKeyAlias = 'KEY1';
         $requestId = Str::uuid()->toString();
         $nonce = Str::random(20);
         // epoch millis (e.g., "1725950062123"); Carbon ensures portability
         $timestamp = CarbonImmutable::now()->format('Uv');
 
+        // Build signature parameters in the correct order
         $signatureParams = 'clientID=' . $clientConfig['client_id']
             . '&requestID=' . $requestId
             . '&nonce=' . $nonce
             . '&timestamp=' . $timestamp
-            . '&aggregatorKeyAlias=' . $aggregatorKeyAlias;
+            . '&signKeyAlias=' . $signKeyAlias;
 
         // 4) Generate PGP signature (ASCII-armored, detached)
         try {
@@ -57,7 +58,23 @@ class BankController extends Controller
             $passphrase = config('clients.' . $clientSlug . '.' . env('APP_ENV') . '.pgp.passphrase');
             $keyFingerprint = config('clients.' . $clientSlug . '.' . env('APP_ENV') . '.pgp.fingerprint');
             
+            // Log the parameters being signed for debugging
+            Log::info('Signing parameters', [
+                'signatureParams' => $signatureParams,
+                'privateKeyPath' => $privateKeyPath,
+                'hasPassphrase' => !empty($passphrase),
+                'keyFingerprint' => $keyFingerprint
+            ]);
+            
             $signature = $gpgService->sign($signatureParams, $privateKeyPath, $passphrase, $keyFingerprint);
+            
+            // Log the generated signature for debugging
+            Log::info('Generated signature', [
+                'signatureLength' => strlen($signature),
+                'signatureStart' => substr($signature, 0, 50) . '...',
+                'signatureEnd' => '...' . substr($signature, -50)
+            ]);
+            
         } catch (\Throwable $e) {
             Log::error('PGP signing failed', ['error' => $e->getMessage()]);
             return response()->json([
@@ -71,13 +88,25 @@ class BankController extends Controller
             'requestID' => $requestId,
             'nonce' => $nonce,
             'timestamp' => $timestamp,
-            'aggregatorKeyAlias' => $aggregatorKeyAlias,
+            'signKeyAlias' => $signKeyAlias,
             'signature' => $signature, // -----BEGIN PGP SIGNATURE----- ...
         ];
+
+        // Log the request parameters for debugging
+        Log::info('Making API request', [
+            'url' => config('abs.' . env('APP_ENV') . '.banks.api_url'),
+            'params' => $requestParams
+        ]);
 
         $response = Http::get(config('abs.' . env('APP_ENV') . '.banks.api_url'), $requestParams);
 
         if ($response->failed()) {
+            Log::error('API request failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'headers' => $response->headers()
+            ]);
+            
             return response()->json([
                 'message' => 'Upstream request failed',
                 'error' => $response->body(),
