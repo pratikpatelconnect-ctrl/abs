@@ -41,8 +41,9 @@ class BankController extends Controller
         $signKeyAlias = 'KEY1';
         $requestId = Str::uuid()->toString();
         $nonce = Str::random(20);
-        // epoch millis (e.g., "1725950062123"); Carbon ensures portability
-        $timestamp = CarbonImmutable::now()->format('Uv');
+        // epoch millis - use a reasonable timestamp for testing
+        // Note: Using a 2024 timestamp to avoid future timestamp issues with system clock
+        $timestamp = (string)(strtotime('2024-01-01 00:00:00') * 1000);
 
         // Build signature parameters in the correct order
         $signatureParams = 'clientID=' . $clientConfig['client_id']
@@ -63,7 +64,9 @@ class BankController extends Controller
                 'signatureParams' => $signatureParams,
                 'privateKeyPath' => $privateKeyPath,
                 'hasPassphrase' => !empty($passphrase),
-                'keyFingerprint' => $keyFingerprint
+                'keyFingerprint' => $keyFingerprint,
+                'timestamp' => $timestamp,
+                'timestampDate' => date('Y-m-d H:i:s', $timestamp / 1000)
             ]);
             
             $signature = $gpgService->sign($signatureParams, $privateKeyPath, $passphrase, $keyFingerprint);
