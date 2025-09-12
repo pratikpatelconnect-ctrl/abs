@@ -66,6 +66,7 @@ class ConnectivityTestController extends Controller
             'headers' => $header,
             'cert_exists' => file_exists($certPath),
             'key_exists' => file_exists($keyPath),
+            'app_env' => env('APP_ENV'),
         ]);
         
         // Initialize cURL
