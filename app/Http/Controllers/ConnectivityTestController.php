@@ -43,7 +43,7 @@ class ConnectivityTestController extends Controller
         $http = Http::withOptions([
             'cert' => storage_path('app/certs/uobuat_sivren_org.crt'),
             'ssl_key' => storage_path('app/certs/uobuat_sivren_org.pem'),
-            'verify' => storage_path('app/certs/root-ca.crt'),
+            // 'verify' => storage_path('app/certs/root-ca.crt'),
         ])->withHeaders($header);
         $response = $http->post($url, $request_body);
         if ($response->failed()) {
