@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuthorizeCreationController;
 use App\Http\Controllers\BankController;
 use App\Http\Controllers\ConnectivityTestController;
 use Illuminate\Http\Request;
@@ -11,3 +12,4 @@ Route::get('/user', function (Request $request) {
 
 Route::get('/banks', [BankController::class, 'index']);
 Route::get('/connectivity-test', [ConnectivityTestController::class, 'index']);
+Route::get('/authorize-creation', [AuthorizeCreationController::class, 'createAuthorize']);
