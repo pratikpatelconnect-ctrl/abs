@@ -11,23 +11,20 @@ class AuthorizeCreationController extends Controller
 {
     public function createAuthorize(Request $request): JsonResponse
     {
-        $requestId = Str::uuid()->toString();
-        $request->requestID = $request->input('requestID', $requestId);
-
         $validator = Validator::make($request->all(), [
-            'client_slug' => 'required|min:11|max:11',
-            'applicantBankCode' => 'nullable|min:1|max:35',
-            'boName' => 'required|max:140',
-            'boTransactionRefNo' => 'required|min:35|max:35',
-            'clientID' => 'required|min:15|max:15',
-            'purpose' => 'nullable|in:LOAN',
-            'requestID' => 'required|min:36|max:36',
-            'requestType' => 'required|in:Creation',
-            'segment' => 'required|in:Retail',
-            'nonce' => 'required|min:20|max:20',
-            'Timestamp' => 'required',
-            'signKeyAlias' => 'nullable',
-            'signature' => 'required',
+            'client_slug' => 'required|string',
+            'applicantBankCode' => 'nullable|string|min:1|max:35',
+            'boName' => 'required|string|max:140',
+            'boTransactionRefNo' => 'required|string|min:35|max:35',
+            'clientID' => 'required|string|min:15|max:15',
+            'purpose' => 'nullable|string|in:LOAN',
+            'requestID' => 'nullable|string|min:36|max:36',
+            'requestType' => 'required|string|in:Creation',
+            'segment' => 'required|string|in:Retail',
+            'nonce' => 'nullable|string|min:20|max:20',
+            'Timestamp' => 'nullable|string',
+            'signKeyAlias' => 'nullable|string',
+            'signature' => 'nullable|string',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -45,15 +42,18 @@ class AuthorizeCreationController extends Controller
         }
         $clientConfig = $clientConfig[env('APP_ENV')];
 
-        $requestId = Str::uuid()->toString();
-        $nonce = Str::random(20);
-        $timestamp = (string) (strtotime('2024-01-01 00:00:00') * 1000);
+        // Generate values if not provided in request
+        $requestId = $request->input('requestID') ?: Str::uuid()->toString();
+        $nonce = $request->input('nonce') ?: Str::random(20);
+        $timestamp = $request->input('Timestamp') ?: (string) (time() * 1000);
+        $signKeyAlias = $request->input('signKeyAlias') ?: 'KEY1';
 
-        $signatureParams = 'clientID=' . $clientConfig['client_id']
+        // Use actual request values for signature parameters
+        $signatureParams = 'clientID=' . $request->input('clientID')
             . '&requestID=' . $requestId
             . '&nonce=' . $nonce
             . '&timestamp=' . $timestamp
-            . '&signKeyAlias=' . $request->string('signKeyAlias');
+            . '&signKeyAlias=' . $signKeyAlias;
 
         // $signature = $gpgService->signWithSHA256($signatureParams, $privateKeyPath, $passphrase, $keyFingerprint);
         $signature = 'test';
