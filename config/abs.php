@@ -10,6 +10,10 @@ return [
             'api_url' => 'https://uat-api.eddanow.sg/api/v1/bank/banks',
             'method' => 'GET',
         ],
+        'authorizeCreation' => [
+            'api_url' => 'https://uat-api.eddanow.sg/api/v1/edda/authorize/creation',
+            'method' => 'GET',
+        ],
     ],
     'production' => [
         'connectivityTest' => [
@@ -18,6 +22,10 @@ return [
         ],
         'banks' => [
             'api_url' => 'https://api.eddanow.sg/api/v1/bank/banks',
+            'method' => 'GET',
+        ],
+        'authorizeCreation' => [
+            'api_url' => 'https://api.eddanow.sg/api/v1/edda/authorize/creation',
             'method' => 'GET',
         ],
     ],
