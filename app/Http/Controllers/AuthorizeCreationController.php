@@ -52,74 +52,86 @@ class AuthorizeCreationController extends Controller
         $signKeyAlias = $request->input('signKeyAlias') ?: 'KEY1';
 
         // Build signature parameters in correct order, excluding empty optional fields
-        $signatureParams = [];
+        $signatureParams = $this->buildSignatureParams($request, $requestId, $nonce, $timestamp, $signKeyAlias);
 
-        // Required parameters
-        $signatureParams[] = 'clientID=' . $request->input('clientID');
-        $signatureParams[] = 'requestID=' . $requestId;
-        $signatureParams[] = 'nonce=' . $nonce;
-        $signatureParams[] = 'timestamp=' . $timestamp;
-        $signatureParams[] = 'signKeyAlias=' . $signKeyAlias;
-
-        // Optional parameters - only include if not empty
-        if (!empty($request->input('applicantBankCode'))) {
-            $signatureParams[] = 'applicantBankCode=' . $request->input('applicantBankCode');
-        }
-        if (!empty($request->input('boName'))) {
-            $signatureParams[] = 'boName=' . $request->input('boName');
-        }
-        if (!empty($request->input('boTransactionRefNo'))) {
-            $signatureParams[] = 'boTransactionRefNo=' . $request->input('boTransactionRefNo');
-        }
-        if (!empty($request->input('purpose'))) {
-            $signatureParams[] = 'purpose=' . $request->input('purpose');
-        }
-        if (!empty($request->input('requestType'))) {
-            $signatureParams[] = 'requestType=' . $request->input('requestType');
-        }
-        if (!empty($request->input('segment'))) {
-            $signatureParams[] = 'segment=' . $request->input('segment');
+        // Generate signature
+        $signature = $this->generateSignature($signatureParams, $clientSlug, $timestamp);
+        if ($signature === false) {
+            return response()->json(['message' => 'Signature generation failed'], 500);
         }
 
-        $signatureParamsString = implode('&', $signatureParams);
+        // Prepare request parameters for API call
+        $requestParams = $this->buildRequestParams($request, $requestId, $nonce, $timestamp, $signKeyAlias, $signature);
 
-        // Initialize GPG service and get client configuration
+        // Make API request
+        return $this->makeApiRequest($requestParams, $signature);
+    }
+
+    /**
+     * Build signature parameters in correct order, excluding empty optional fields
+     */
+    private function buildSignatureParams(Request $request, string $requestId, string $nonce, string $timestamp, string $signKeyAlias): string
+    {
+        $params = [
+            'clientID' => $request->input('clientID'),
+            'requestID' => $requestId,
+            'nonce' => $nonce,
+            'timestamp' => $timestamp,
+            'signKeyAlias' => $signKeyAlias,
+        ];
+
+        // Add optional parameters if not empty
+        $optionalParams = ['applicantBankCode', 'boName', 'boTransactionRefNo', 'purpose', 'requestType', 'segment'];
+        foreach ($optionalParams as $param) {
+            $value = $request->input($param);
+            if (!empty($value)) {
+                $params[$param] = $value;
+            }
+        }
+
+        return http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+    }
+
+    /**
+     * Generate SHA256 signature using GPG service
+     */
+    private function generateSignature(string $signatureParams, string $clientSlug, string $timestamp): string|false
+    {
         try {
             $gpgService = new GpgService();
-            $privateKeyPath = config('clients.' . $clientSlug . '.' . env('APP_ENV') . '.pgp.private_key');
-            $passphrase = config('clients.' . $clientSlug . '.' . env('APP_ENV') . '.pgp.passphrase');
-            $keyFingerprint = config('clients.' . $clientSlug . '.' . env('APP_ENV') . '.pgp.fingerprint');
+            $config = config('clients.' . $clientSlug . '.' . env('APP_ENV') . '.pgp');
 
-            // Log the parameters being signed for debugging
             Log::info('Authorize Creation - Signing parameters', [
-                'signatureParams' => $signatureParamsString,
-                'privateKeyPath' => $privateKeyPath,
-                'hasPassphrase' => !empty($passphrase),
-                'keyFingerprint' => $keyFingerprint,
+                'signatureParams' => $signatureParams,
                 'timestamp' => $timestamp,
                 'timestampDate' => date('Y-m-d H:i:s', $timestamp / 1000)
             ]);
 
-            // Generate SHA256 signature
-            $signature = $gpgService->signWithSHA256($signatureParamsString, $privateKeyPath, $passphrase, $keyFingerprint);
+            $signature = $gpgService->signWithSHA256(
+                $signatureParams,
+                $config['private_key'],
+                $config['passphrase'],
+                $config['fingerprint']
+            );
 
-            // Log the generated signature for debugging
             Log::info('Authorize Creation - Generated signature', [
-                'signatureLength' => strlen($signature),
-                'signatureStart' => substr($signature, 0, 50) . '...',
-                'signatureEnd' => '...' . substr($signature, -50)
+                'signatureLength' => strlen($signature)
             ]);
+
+            return $signature;
 
         } catch (\Throwable $e) {
             Log::error('Authorize Creation - Signature generation failed', ['error' => $e->getMessage()]);
-            return response()->json([
-                'message' => 'Signature generation failed',
-                'error' => $e->getMessage()
-            ], 500);
+            return false;
         }
+    }
 
-        // Prepare request parameters for API call
-        $requestParams = [
+    /**
+     * Build request parameters for API call
+     */
+    private function buildRequestParams(Request $request, string $requestId, string $nonce, string $timestamp, string $signKeyAlias, string $signature): array
+    {
+        $params = [
             'clientID' => $request->input('clientID'),
             'requestID' => $requestId,
             'nonce' => $nonce,
@@ -129,41 +141,31 @@ class AuthorizeCreationController extends Controller
         ];
 
         // Add optional parameters if provided
-        if (!empty($request->input('applicantBankCode'))) {
-            $requestParams['applicantBankCode'] = $request->input('applicantBankCode');
-        }
-        if (!empty($request->input('boName'))) {
-            $requestParams['boName'] = $request->input('boName');
-        }
-        if (!empty($request->input('boTransactionRefNo'))) {
-            $requestParams['boTransactionRefNo'] = $request->input('boTransactionRefNo');
-        }
-        if (!empty($request->input('purpose'))) {
-            $requestParams['purpose'] = $request->input('purpose');
-        }
-        if (!empty($request->input('requestType'))) {
-            $requestParams['requestType'] = $request->input('requestType');
-        }
-        if (!empty($request->input('segment'))) {
-            $requestParams['segment'] = $request->input('segment');
+        $optionalParams = ['applicantBankCode', 'boName', 'boTransactionRefNo', 'purpose', 'requestType', 'segment'];
+        foreach ($optionalParams as $param) {
+            $value = $request->input($param);
+            if (!empty($value)) {
+                $params[$param] = $value;
+            }
         }
 
-        // Get API configuration
+        return $params;
+    }
+
+    /**
+     * Make HTTP request to authorize creation API
+     */
+    private function makeApiRequest(array $requestParams, string $signature): JsonResponse
+    {
         $apiConfig = config('abs.' . env('APP_ENV') . '.authorizeCreation');
-        $apiUrl = $apiConfig['api_url'];
-        $apiMethod = $apiConfig['method'];
 
-        // Log the request parameters for debugging
         Log::info('Authorize Creation - API Request', [
-            'url' => $apiUrl,
-            'method' => $apiMethod,
+            'url' => $apiConfig['api_url'],
             'params' => $requestParams
         ]);
 
-        // Make HTTP request to authorize creation API
         try {
-            $response = Http::get($apiUrl, $requestParams);
-
+            $response = Http::get($apiConfig['api_url'], $requestParams);
             $responseData = $response->json();
             $statusCode = $response->status();
 
@@ -178,18 +180,18 @@ class AuthorizeCreationController extends Controller
                     'data' => $responseData,
                     'signature' => $signature,
                 ], $statusCode);
-            } else {
-                return response()->json([
-                    'message' => 'Authorize creation failed',
-                    'error' => $responseData,
-                    'status_code' => $statusCode
-                ], $statusCode);
             }
+
+            return response()->json([
+                'message' => 'Authorize creation failed',
+                'error' => $responseData,
+                'status_code' => $statusCode
+            ], $statusCode);
 
         } catch (\Throwable $e) {
             Log::error('Authorize Creation - API request failed', [
                 'error' => $e->getMessage(),
-                'url' => $apiUrl
+                'url' => $apiConfig['api_url']
             ]);
 
             return response()->json([
