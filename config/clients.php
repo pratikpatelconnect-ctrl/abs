@@ -8,8 +8,8 @@ return [
             'pgp' => [
                 'issuer_id' => 'uobuat@sivren.com',
                 'passphrase' => 'pgpss2025',
-                'fingerprint' => 'C17872836FDA628389B626533E949729690588A7',
-                'issuer_key_id' => '3E949729690588A7',
+                'fingerprint' => '2FE5A8CDF06D6A69AE525585DEEEC901F3F520B6',
+                'issuer_key_id' => 'DEEEC901F3F520B6',
                 'public_key' => storage_path('app/pgp/public.asc'),
                 'private_key' => storage_path('app/pgp/private.asc'),
             ]
