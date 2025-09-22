@@ -58,7 +58,9 @@ class ConnectivityTestController extends Controller
             $ciphertext = $gpgService->encrypt($plaintext, $publicKeyPath, $fingerprint);
 
             // According to typical patterns, send as payload or body
-            $request_body = $ciphertext;
+            $request_body = [
+                'payload' => $ciphertext,
+            ];
 
         } catch (\Throwable $e) {
             Log::error('ConnectivityTest encryption failed', ['error' => $e->getMessage()]);
