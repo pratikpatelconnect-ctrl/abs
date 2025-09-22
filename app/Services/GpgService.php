@@ -8,6 +8,74 @@ use Crypt_GPG;
 class GpgService
 {
     /**
+     * Encrypt a message with a recipient's public PGP key using Crypt_GPG.
+     * Returns ASCII-armored ciphertext.
+     *
+     * @param string $message The plaintext message to encrypt
+     * @param string $publicKeyPath Path to the recipient public key file
+     * @param string|null $keyFingerprint Optional fingerprint/ID of the recipient key
+     * @return string ASCII-armored ciphertext
+     */
+    public function encrypt(string $message, string $publicKeyPath, string $keyFingerprint = null): string
+    {
+        try {
+            $tempHome = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'gpg-' . bin2hex(random_bytes(6));
+            if (!mkdir($tempHome, 0700, true) && !is_dir($tempHome)) {
+                throw new \RuntimeException('Failed to create temp GNUPGHOME');
+            }
+
+            if (!is_writable($tempHome)) {
+                throw new \RuntimeException('Temp GNUPGHOME directory is not writable');
+            }
+
+            try {
+                $gpg = new Crypt_GPG([
+                    'homedir' => $tempHome,
+                    'armor' => true,
+                ]);
+
+                if (!is_readable($publicKeyPath)) {
+                    throw new \RuntimeException('Public key not readable at ' . $publicKeyPath);
+                }
+
+                $armoredKey = file_get_contents($publicKeyPath);
+                $importResult = $gpg->importKey($armoredKey);
+
+                if (empty($importResult['fingerprint'])) {
+                    throw new \RuntimeException('Failed to import public key');
+                }
+
+                $recipientFingerprint = $keyFingerprint ?: $importResult['fingerprint'];
+                $gpg->addEncryptKey($recipientFingerprint);
+
+                $ciphertext = $gpg->encrypt($message);
+                if (!$ciphertext || stripos($ciphertext, 'BEGIN PGP MESSAGE') === false) {
+                    throw new \RuntimeException('Encryption returned invalid ciphertext');
+                }
+
+                return $ciphertext;
+
+            } finally {
+                try {
+                    array_map('unlink', glob($tempHome . DIRECTORY_SEPARATOR . '*') ?: []);
+                    @rmdir($tempHome);
+                } catch (\Throwable $e) {
+                    // Ignore cleanup errors
+                }
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Crypt_GPG encryption failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            throw new \RuntimeException('PGP encryption failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Sign a message with a private PGP key using Crypt_GPG package.
      * 
      * @param string $message The message to sign

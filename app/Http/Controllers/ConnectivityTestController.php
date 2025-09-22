@@ -7,6 +7,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Str;
+use App\Services\GpgService;
+use Illuminate\Support\Facades\Log;
 
 class ConnectivityTestController extends Controller
 {
@@ -40,6 +42,33 @@ class ConnectivityTestController extends Controller
         $request_body = [
             'message' => 'Connectivity Test',
         ];
+
+        // Encrypt request body using client's public key
+        try {
+            $gpgService = new GpgService();
+            $publicKeyPath = $clientConfig['pgp']['public_key'] ?? null;
+            $fingerprint = $clientConfig['pgp']['fingerprint'] ?? null;
+            if (empty($publicKeyPath)) {
+                return response()->json([
+                    'message' => 'Missing client public key configuration',
+                ], 422);
+            }
+
+            $plaintext = json_encode($request_body, JSON_UNESCAPED_SLASHES);
+            $ciphertext = $gpgService->encrypt($plaintext, $publicKeyPath, $fingerprint);
+
+            // According to typical patterns, send as payload or body
+            $request_body = [
+                'payload' => $ciphertext,
+            ];
+
+        } catch (\Throwable $e) {
+            Log::error('ConnectivityTest encryption failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to encrypt request body',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
         $http = Http::withOptions([
             'cert' => storage_path('app/certs/uobuat_sivren_org.crt'),
             'ssl_key' => storage_path('app/certs/uobuat_sivren_org.pem'),
