@@ -3,7 +3,7 @@
 return [
     'soonsengcredit' => [
         'uat' => [
-            'client_id' => 'BOSOO201901887G',
+            'client_id' => 'BOSOO1887G01SOO',
             'x-api-key' => '1135a09c-b0db-4c95-93e7-b8eb8f3e63e2',
             'pgp' => [
                 'issuer_id' => 'uobuat@sivren.com',
