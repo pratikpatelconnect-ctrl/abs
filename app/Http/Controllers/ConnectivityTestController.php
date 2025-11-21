@@ -47,7 +47,7 @@ class ConnectivityTestController extends Controller
             'requestID' => $requestId,
             'x-api-key' => $clientConfig['x-api-key'],
             // 'signKeyAlias' => "BOSOO201901887G_BU01_UAT_PGP_PUBLICKEY_PRIMARY_570832",
-            'aggregatorKeyAlias' => "AGGREGATOR5_UAT_PGP_PRIMARY",
+            'aggregatorKeyAlias' => $clientConfig['aggregator_key_alias'],
         ];
 
         $requestBody = [
