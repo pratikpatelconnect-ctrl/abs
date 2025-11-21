@@ -59,9 +59,9 @@ return [
             'x-api-key' => 'c11287ac-1ca3-445b-a9ae-1bae619fc987',
             'pgp' => [
                 'issuer_id' => 'uobuat@sivren.com',
-                'passphrase' => 'uatuob2025',
-                'fingerprint' => '40044FCBD111BD3ADEBA4447BF7AC39F6DC6A2A2',
-                'issuer_key_id' => 'BF7AC39F6DC6A2A2',
+                'passphrase' => 'pgpss2025',
+                'fingerprint' => '4CA8AD8EAA3A29E33765A659326E636F574ACFDA',
+                'issuer_key_id' => '326E636F574ACFDA',
                 'public_key' => storage_path('app/pgp/public.asc'),
                 'private_key' => storage_path('app/pgp/private.asc'),
             ]
