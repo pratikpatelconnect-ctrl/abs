@@ -92,6 +92,7 @@ class ConnectivityTestController extends Controller
                     'headers' => $headers,
                     'original_request_body' => $requestBody,
                     'encrypted_request_body' => $ciphertext,
+                    'timestamp' => now()->format('Y-m-d H:i:s'),
                 ],
                 'response_data' => [
                     'status' => $response->status(),
