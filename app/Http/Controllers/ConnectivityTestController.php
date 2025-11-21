@@ -69,7 +69,7 @@ class ConnectivityTestController extends Controller
             $ciphertext = $gpgService->encrypt($plaintext, $aggregatorPublicKeyPath);
 
             $encryptedBody = [
-                'message' => $ciphertext,
+                'payload' => $ciphertext,
             ];
 
         } catch (\Throwable $e) {
@@ -84,14 +84,14 @@ class ConnectivityTestController extends Controller
             'ssl_key' => storage_path('app/certs/uobuat_sivren_org.pem'),
         ])->withHeaders($headers);
 
-        $response = $http->post($url, $encryptedBody);
+        $response = $http->post($url, $ciphertext);
         if ($response->failed()) {
             return response()->json([
                 'request_data' => [
                     'url' => $url,
                     'headers' => $headers,
                     'original_request_body' => $requestBody,
-                    'encrypted_request_body' => $encryptedBody,
+                    'encrypted_request_body' => $ciphertext,
                 ],
                 'response_data' => [
                     'status' => $response->status(),
