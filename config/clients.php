@@ -85,4 +85,32 @@ return [
             ]
         ],
     ],
+    'moneywise-credit' => [
+        'uat' => [
+            'client_id' => 'BOMON8326M01MON',
+            'x-api-key' => 'b972e3f5-afe5-4669-981c-17040a5f19a9',
+            'aggregator_key_alias' => 'AGGREGATOR5_UAT_PGP_PRIMARY',
+            'pgp' => [
+                'issuer_id' => 'uobuat@sivren.com',
+                'passphrase' => 'pgpss2025',
+                'fingerprint' => '4CA8AD8EAA3A29E33765A659326E636F574ACFDA',
+                'issuer_key_id' => '326E636F574ACFDA',
+                'public_key' => storage_path('app/pgp/public.asc'),
+                'private_key' => storage_path('app/pgp/private.asc'),
+            ]
+        ],
+        'production' => [
+            'client_id' => '',
+            'x-api-key' => '',
+            'aggregator_key_alias' => '',
+            'pgp' => [
+                'issuer_id' => '',
+                'passphrase' => '',
+                'fingerprint' => '',
+                'issuer_key_id' => '',
+                'public_key' => storage_path('app/pgp/public.asc'),
+                'private_key' => storage_path('app/pgp/private.asc'),
+            ]
+        ],
+    ],
 ];
